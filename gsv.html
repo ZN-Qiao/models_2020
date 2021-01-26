@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Directly Accessing Street View Data</title>
+  <style>
+    /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+    #map {
+      height: 100%;
+    }
+
+    /* Optional: Makes the sample page fill the window. */
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map" style="width: 45%; height: 100%;float:left"></div>
+  <div id="pano" style="width: 45%; height: 100%;float:left"></div>
+  <input type="text" placeholder="Type something..." id="myInput">
+  <button type="button" onclick="getInputValue();">Get Value</button>
+  <script>
+    /*
+     * Click the map to set a new location for the Street View camera.
+     */
+
+    var map;
+    var panorama;
+    var output = '';
+    var llgsv = '';
+
+    function initMap() {
+      // 32.994154, -96.933661
+      var berkeley = { lat: 32.994154, lng: -96.933661 };
+      // 32.994154,-96.933661;32.994154,-96.933661
+
+      var sv = new google.maps.StreetViewService();
+
+      panorama = new google.maps.StreetViewPanorama(document.getElementById('pano'));
+
+      // Set up the map.
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: berkeley,
+        zoom: 16,
+        streetViewControl: false
+      });
+
+      // Set the initial Street View camera to the center of the map
+      sv.getPanorama({ location: berkeley, radius: 50 }, processSVData);
+
+      // Look for a nearby Street View panorama when the map is clicked.
+      // getPanorama will return the nearest pano when the given
+      // radius is 50 meters or less.
+      map.addListener('click', function (event) {
+        console.log('event.latLng', event.latLng)
+        sv.getPanorama({
+          location: event.latLng,
+          // preference: google.maps.StreetViewPreference.NEAREST,
+        }, processSVData);
+      });
+    }
+
+    function processSVData(data, status) {
+      console.log('data', data)
+      if (status === 'OK') {
+        var marker = new google.maps.Marker({
+          position: data.location.latLng,
+          map: map,
+          title: data.location.description
+        });
+
+        panorama.setPano(data.location.pano);
+        panorama.setPov({
+          heading: 270,
+          pitch: 0
+        });
+        panorama.setVisible(true);
+
+        marker.addListener('click', function () {
+          var markerPanoID = data.location.pano;
+          // Set the Pano to use the passed panoID.
+          panorama.setPano(markerPanoID);
+          panorama.setPov({
+            heading: 270,
+            pitch: 0
+          });
+          panorama.setVisible(true);
+        });
+      } else {
+        console.error('Street View data not found for this location.');
+      }
+    }
+
+
+    function getInputValue() {
+      // Selecting the input element and get its value 
+      var inputVal = document.getElementById("myInput").value;
+
+      // Displaying the value
+      console.log(inputVal);
+      const arrayOfLocationCoordsNotSplited = inputVal.split(";")
+      const arrayOfLocationCoordsSplited = arrayOfLocationCoordsNotSplited.map((item, index) => item.split(','))
+      // const requestData = arrayOfLocationCoordsSplited.map(item => ({ lat: item[0], lng: item[1] }))
+      const requestData = arrayOfLocationCoordsSplited.map(item => getLatLngFromString(item[0], item[1]))
+
+      console.log(requestData)
+      getPanoId(requestData)
+    }
+
+    function getPanoId(array) {
+      var sv = new google.maps.StreetViewService();
+
+      for (let i = 0; i <= array.length; i++) {
+        const googleLatLng = array[i]
+        sv.getPanorama({
+          location: googleLatLng,
+          preference: google.maps.StreetViewPreference.NEAREST,
+        }, newProcess);
+      }
+    }
+
+    function getLatLngFromString(lat, long) {
+      return new google.maps.LatLng(parseFloat(lat), parseFloat(long));
+    }
+
+    function newProcess(data, status) {
+      if (status === 'OK') {
+        const panoId = data.location.pano
+        const ponaMeta = data.h[panoId]
+        console.log(ponaMeta)
+        //       console.log(typeof (ponaMeta))
+        var gsvlat = ponaMeta['lat']
+        var gsvlng = ponaMeta['lng']
+        llgsv = llgsv.concat(gsvlat, ',', gsvlng, ';')
+        console.log(llgsv)
+
+        //      var str = data.location.pano
+        //      output = output.concat(str, ';')
+        //      console.log(output)
+      } else {
+        console.error('Street View data not found for this location.');
+      }
+    }
+// 32.994154,-96.933661;32.857948, -96.757907;32.9978024,-96.911135;32.9990764,-96.9048949;
+  </script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCscMs7hvVPlegHqhz2QCL4nJxhdk6RPIw&callback=initMap">
+    </script>
+</body>
+
+</html>
