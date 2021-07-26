@@ -208,4 +208,4 @@ def demo():
     print(y.size())
     stat(net, (3, 224, 224))
 
-demo()
+# demo()

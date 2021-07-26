@@ -342,7 +342,7 @@ def demo():
     print(y.size())
     stat(net, (3, 299, 299))
 
-demo()
+# demo()
 
 
 '''
